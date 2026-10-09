@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+
+    <!-- All styles are included here to keep this example in one file. -->
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Arial, sans-serif;
+            background: #f4f5f7;
+            color: #20242a;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        main {
+            width: min(700px, 100%);
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            color: #646b75;
+        }
+
+        #status {
+            padding: 18px;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+        }
+
+        #status.error {
+            color: #9b1c1c;
+            background: #fff0f0;
+        }
+
+        #product-list {
+            display: grid;
+            gap: 12px;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .product {
+            padding: 18px;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+        }
+
+        .product-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .product h2 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .price {
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .description {
+            margin: 10px 0;
+            color: #555d68;
+        }
+
+        .details {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #737b86;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Products</h1>
+        <p class="subtitle">Products currently available in the database.</p>
+
+        <!-- JavaScript updates the status while the API request is running. -->
+        <p id="status">Loading products...</p>
+
+        <!-- Each product returned by the API is added to this list. -->
+        <ul id="product-list" hidden></ul>
+    </main>
+
+    <script>
+        const statusElement = document.querySelector("#status");
+        const productList = document.querySelector("#product-list");
+
+        // Create a DOM element with textContent instead of inserting raw HTML.
+        // This prevents product values from being interpreted as HTML markup.
+        function createTextElement(tagName, className, text) {
+            const element = document.createElement(tagName);
+            element.className = className;
+            element.textContent = text;
+            return element;
+        }
+
+        function renderProduct(product) {
+            const item = document.createElement("li");
+            item.className = "product";
+
+            const header = document.createElement("div");
+            header.className = "product-header";
+            header.append(
+                createTextElement("h2", "", product.name),
+                createTextElement("span", "price", `${Number(product.price).toFixed(2)} EUR`)
+            );
+            item.append(header);
+
+            // Only show the optional description when one exists.
+            if (product.description) {
+                item.append(
+                    createTextElement("p", "description", product.description)
+                );
+            }
+
+            const sku = product.sku || "No SKU";
+            item.append(
+                createTextElement(
+                    "p",
+                    "details",
+                    `Stock: ${product.stock} · SKU: ${sku}`
+                )
+            );
+
+            productList.append(item);
+        }
+
+        async function loadProducts() {
+            try {
+                // A relative URL uses the same server and port as this page.
+                const response = await fetch("/api/products");
+
+                if (!response.ok) {
+                    throw new Error(`The server returned status ${response.status}.`);
+                }
+
+                const products = await response.json();
+
+                if (products.length === 0) {
+                    statusElement.textContent = "No products have been added yet.";
+                    return;
+                }
+
+                // Remove any previous items before rendering the fresh result.
+                productList.replaceChildren();
+                products.forEach(renderProduct);
+
+                statusElement.hidden = true;
+                productList.hidden = false;
+            } catch (error) {
+                statusElement.classList.add("error");
+                statusElement.textContent = `Could not load products. ${error.message}`;
+            }
+        }
+
+        loadProducts();
+    </script>
+</body>
+</html>
